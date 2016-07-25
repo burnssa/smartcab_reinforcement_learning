@@ -6,9 +6,9 @@ import pdb
 import math
 
 #Learning structure
-DECISION_APPROACH = 'random'
+DECISION_APPROACH = 'learning'
 TRIALS = 100
-MIN_REWARD = 0.1 #threshold for accepting best reward from previous action q table 
+MIN_REWARD = 0.0 #threshold for accepting best reward from previous action q table 
 LEARNING_RATE = 0.8
 RANDOM_VARIATION_RATE = 0.1
 
@@ -139,4 +139,4 @@ def run(trials, learning_rate, random_variation_rate, decision_approach):
 
 
 if __name__ == '__main__':
-    run()
+    run(trials=TRIALS, learning_rate=LEARNING_RATE, random_variation_rate=RANDOM_VARIATION_RATE, decision_approach=DECISION_APPROACH)
