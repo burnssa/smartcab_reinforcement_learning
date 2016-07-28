@@ -8,9 +8,9 @@ import math
 #Learning structure
 DECISION_APPROACH = 'learning'
 TRIALS = 100
-MIN_REWARD = 0.0 #threshold for accepting best reward from previous action q table 
-LEARNING_RATE = 0.8
-RANDOM_VARIATION_RATE = 0.1
+MIN_REWARD = 0.5 #threshold for accepting best reward from previous action q table
+discount_factor = 0.8
+EXPLORATION_RATE = 0.1
 
 #Visual features
 DISPLAY = False
@@ -21,14 +21,14 @@ class LearningAgent(Agent):
 
     actions = ['None', 'forward', 'left', 'right']
 
-    def __init__(self, env, learning_rate, random_variation_rate, decision_approach):
+    def __init__(self, env, discount_factor, exploration_rate, decision_approach):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None, next_waypoint = None, and a default color
         self.color = 'red'  # override color
         self.planner = RoutePlanner(self.env, self)  # simple route planner to get next_waypoint
         self.q_table = {}
         self.states = []
-        self.learning_rate = learning_rate
-        self.random_variation_rate = random_variation_rate
+        self.discount_factor = discount_factor
+        self.exploration_rate = exploration_rate
         self.decision_approach = decision_approach
         self.time = 0
         self.trial = 0
@@ -74,7 +74,7 @@ class LearningAgent(Agent):
             raw_action = self.random_action(self.actions)
         else:
             raw_action = self.choose_action(self.q_table, self.states, state)
-        
+
         #Raw action implemented to address key issues in using None, while preserving valid cab actions
         action = None if raw_action == 'None' else raw_action
         # Execute action and get reward
@@ -87,9 +87,9 @@ class LearningAgent(Agent):
             # print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
             self.before_last_action = self.last_action
             self.last_action = action
-        
+
     def choose_action(self, q_table, states, state):
-        new_random_action = random.random() < self.random_variation_rate
+        new_random_action = random.random() < self.exploration_rate
         relevant_q_table = q_table[states.index(state)]
         #Select a random action if:
         #If there are no q-table entries for the state or
@@ -113,17 +113,17 @@ class LearningAgent(Agent):
 
     def set_q_table(self, q_table, state_index, raw_action, reward):
         if self.q_table[state_index]['action_reward'].get(raw_action):
-            self.q_table[state_index]['action_reward'][raw_action] += reward * math.pow(self.learning_rate, self.time)
+            self.q_table[state_index]['action_reward'][raw_action] += reward * math.pow(self.discount_factor, self.time)
         else:
             self.q_table[state_index]['action_reward'][raw_action] = reward
         return q_table
 
-def run(trials, learning_rate, random_variation_rate, decision_approach):
+def run(trials, discount_factor, exploration_rate, decision_approach):
     """Run the agent for a finite number of trials."""
 
     # Set up environment and agent
     e = Environment()  # create environment (also adds some dummy traffic)
-    a = e.create_agent(LearningAgent, learning_rate, random_variation_rate, decision_approach)  # create agent
+    a = e.create_agent(LearningAgent, discount_factor, exploration_rate, decision_approach)  # create agent
     e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
 
     # Now simulate it
@@ -139,4 +139,4 @@ def run(trials, learning_rate, random_variation_rate, decision_approach):
 
 
 if __name__ == '__main__':
-    run(trials=TRIALS, learning_rate=LEARNING_RATE, random_variation_rate=RANDOM_VARIATION_RATE, decision_approach=DECISION_APPROACH)
+    run(trials=TRIALS, discount_factor=discount_factor, exploration_rate=EXPLORATION_RATE, decision_approach=DECISION_APPROACH)

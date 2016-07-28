@@ -9,19 +9,19 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from textwrap import wrap
 
-TRIAL_SETS = 10
+TRIAL_SETS = 100
 
-TRIALS = [20, 100, 500]
-LEARNING_RATES = [0.5, 0.7, 0.9]
-RANDOM_VARIATION_RATES = [0.1, 0.3, 0.5]
+TRIALS = [20, 50, 500]
+DISCOUNT_FACTORS = [0.5, 0.7, 0.9]
+EXPLORATION_RATES = [0.1, 0.3, 0.5]
 APPROACHES = ['learning', 'random']
 
 class Tester():
     def __init__(self):
 	   self.simulation_scores = []
 
-    def run_trials(self, learning_rate, decision_approach, random_variation_rate=0.2, trials=TRIALS[1]):
-    	trial_scores, trial_times = run(trials, learning_rate, random_variation_rate, decision_approach)
+    def run_trials(self, discount_factor, decision_approach, exploration_rate=0.2, trials=TRIALS[0]):
+    	trial_scores, trial_times = run(trials, discount_factor, exploration_rate, decision_approach)
         trial_scores.pop(0), trial_times.pop(0) # Remove 0 for exponential fitting later
         trial_scores, trial_times = np.array(trial_scores), np.array(trial_times)
         total_score = np.sum(trial_scores)
@@ -44,20 +44,20 @@ class Tester():
 
         return projected_data, actual_data, score_improvement_rate, max_fit_score
 
-def run_trial_sets(learning_rate, decision_approach, random_variation_rate, trials, dimensions, subplot):
+def run_trial_sets(discount_factor, decision_approach, exploration_rate, trials, dimensions, subplot):
     projection_list = []
     improvement_rates = []
     max_fit_scores = []
 
     if decision_approach == 'random':
-        learning_rate = 'N/A'
-        random_variation_rate = 'N/A'
+        discount_factor = 'N/A'
+        exploration_rate = 'N/A'
 
     for trial in range(0, TRIAL_SETS):
         t = Tester()
-        projected, actual, improvement_rate, max_fit_score = t.run_trials(learning_rate, 
+        projected, actual, improvement_rate, max_fit_score = t.run_trials(discount_factor, 
                                                                             decision_approach,
-                                                                            random_variation_rate,
+                                                                            exploration_rate,
                                                                             trials)
         projection_list.append(projected)
         improvement_rates.append(improvement_rate)
@@ -84,13 +84,13 @@ def run_trial_sets(learning_rate, decision_approach, random_variation_rate, tria
     plt.ylabel('Trial scores', size=8)
     plt.text(x_max / 20, 12, 'Gray: actual scores from most recent trial set', style='italic', size=4)
     plt.text(x_max / 20, 11, 'Color: projected trial set averages', style='italic', size=4)
-    plt.text(x_max / 20, 14, "Trial set mean improvement rate:{}".format(round(mean_improvement_rate,2)), size=6)
-    plt.text(x_max / 20, 16, "Std dev. of trial set max fit projections:{}".format(round(std_max_fit_score,2)), size=6)
-    plt.text(x_max / 20, 18, "Mean of trial set max fit projections:{}".format(round(mean_max_fit_score,2)), size=6)
-    plt.title("\n".join(wrap("Learning rate: {} | " \
+    plt.text(x_max / 20, 14, "Trial set mean improvement rate:{}".format(round(mean_improvement_rate,2)), size=7)
+    plt.text(x_max / 20, 16, "Std dev. of trial set max projections:{}".format(round(std_max_fit_score,2)), size=7)
+    plt.text(x_max / 20, 18, "Mean of trial set max projections:{}".format(round(mean_max_fit_score,2)), size=7)
+    plt.title("\n".join(wrap("Discount factor: {} | " \
                             "Decision approach: {} | " \
-                            "Random variation rate: {} | " \
-                            "Trials: {}".format(learning_rate, decision_approach, random_variation_rate, trials),50)), size=8)
+                            "Exploration rate: {} | " \
+                            "Trials: {}".format(discount_factor, decision_approach, exploration_rate, trials),50)), size=8)
     return plt
 
 subplot = 0
@@ -101,35 +101,35 @@ font = {'family' : 'sans-serif',
 mpl.rc('font', **font)
 fig = plt.figure(figsize=(12, 9), dpi=100)
 
-for rate in RANDOM_VARIATION_RATES:
-    dimensions = [len(RANDOM_VARIATION_RATES)+1, len(TRIALS)] #To include random row in subplots
+for rate in EXPLORATION_RATES:
+    dimensions = [len(EXPLORATION_RATES)+1, len(TRIALS)] #To include random row in subplots
     for trial in TRIALS:    
         subplot += 1 
-        run_trial_sets(LEARNING_RATES[2], APPROACHES[0], rate, trial, 
+        run_trial_sets(DISCOUNT_FACTORS[2], APPROACHES[0], rate, trial, 
                             dimensions, subplot)
 for trial in TRIALS:
     subplot += 1 
-    run_trial_sets(LEARNING_RATES[2], APPROACHES[1], RANDOM_VARIATION_RATES[0], trial, 
-                        dimensions, subplot) #Note: learning and random variation rates are not used
-plt.suptitle('Learning performance under different random variation rates', size=12, y=0.97)
+    run_trial_sets(DISCOUNT_FACTORS[2], APPROACHES[1], EXPLORATION_RATES[0], trial, 
+                        dimensions, subplot) #Note: discount factors and exploration rates are not used
+plt.suptitle('Learning performance under different exploration rates', size=12, y=0.97)
 plt.tight_layout(h_pad=1.7, rect=[0, 0, 1, 0.93])
-plt.savefig('random_variation_rate_charts.png')
+plt.savefig('exploration_rate_charts.png')
 plt.show()
 
 subplot = 0
 fig = plt.figure(figsize=(12, 9), dpi=100)
 
-for rate in LEARNING_RATES:
-    dimensions = [len(LEARNING_RATES)+1, len(TRIALS)] #To include random row in subplots
+for rate in DISCOUNT_FACTORS:
+    dimensions = [len(DISCOUNT_FACTORS)+1, len(TRIALS)] #To include random row in subplots
     for trial in TRIALS:    
         subplot += 1 
-        run_trial_sets(rate, APPROACHES[0], RANDOM_VARIATION_RATES[0], trial, 
+        run_trial_sets(rate, APPROACHES[0], EXPLORATION_RATES[0], trial, 
                             dimensions, subplot)
 for trial in TRIALS:
     subplot += 1 
-    run_trial_sets(LEARNING_RATES[0], APPROACHES[1], RANDOM_VARIATION_RATES[0], trial, 
-                        dimensions, subplot) #Note: learning and random variation rates are not used
-plt.suptitle('Learning performance under different learning rates', size=12, y=0.97)
+    run_trial_sets(DISCOUNT_FACTORS[0], APPROACHES[1], EXPLORATION_RATES[0], trial, 
+                        dimensions, subplot) #Note: learning and exploration rates are not used
+plt.suptitle('Learning performance under different discount factors', size=12, y=0.97)
 plt.tight_layout(h_pad=1.7, rect=[0, 0, 1, 0.93])
-plt.savefig('learning_rate_charts.png')
+plt.savefig('discount_factor_charts.png')
 plt.show()
