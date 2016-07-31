@@ -11,8 +11,8 @@ from textwrap import wrap
 
 TRIAL_SETS = 100
 
-TRIALS = [20, 50, 500]
-DISCOUNT_FACTORS = [0.5, 0.7, 0.9]
+TRIALS = [20, 50, 200]
+LEARNING_RATES = [0.5, 0.7, 0.9]
 EXPLORATION_RATES = [0.1, 0.3, 0.5]
 APPROACHES = ['learning', 'random']
 
@@ -20,8 +20,8 @@ class Tester():
     def __init__(self):
 	   self.simulation_scores = []
 
-    def run_trials(self, discount_factor, decision_approach, exploration_rate=0.2, trials=TRIALS[0]):
-    	trial_scores, trial_times = run(trials, discount_factor, exploration_rate, decision_approach)
+    def run_trials(self, learning_rate, decision_approach, exploration_rate=0.2, trials=TRIALS[0]):
+    	trial_scores, trial_times = run(trials, learning_rate, exploration_rate, decision_approach)
         trial_scores.pop(0), trial_times.pop(0) # Remove 0 for exponential fitting later
         trial_scores, trial_times = np.array(trial_scores), np.array(trial_times)
         total_score = np.sum(trial_scores)
@@ -32,7 +32,7 @@ class Tester():
 
         fit = np.poly1d(coefficients)
         fit_projections = fit(np.log(trial_times))
-        max_fit_score = np.max(fit_projections) 
+        max_fit_score = np.max(fit_projections)
         print "##### Trial statistics #####"
         print "##### Decision approach: {} #####".format(decision_approach)
         print "##### Score improvement rate: {} #####".format(coefficients[0])
@@ -44,18 +44,20 @@ class Tester():
 
         return projected_data, actual_data, score_improvement_rate, max_fit_score
 
-def run_trial_sets(discount_factor, decision_approach, exploration_rate, trials, dimensions, subplot):
+def run_trial_sets(learning_rate, decision_approach, exploration_rate, trials, dimensions, subplot):
     projection_list = []
     improvement_rates = []
     max_fit_scores = []
+    height = 0
 
     if decision_approach == 'random':
-        discount_factor = 'N/A'
+        learning_rate = 'N/A'
         exploration_rate = 'N/A'
+        height = 12
 
     for trial in range(0, TRIAL_SETS):
         t = Tester()
-        projected, actual, improvement_rate, max_fit_score = t.run_trials(discount_factor, 
+        projected, actual, improvement_rate, max_fit_score = t.run_trials(learning_rate,
                                                                             decision_approach,
                                                                             exploration_rate,
                                                                             trials)
@@ -74,23 +76,23 @@ def run_trial_sets(discount_factor, decision_approach, exploration_rate, trials,
 
     plt.subplot(dimensions[0], dimensions[1], subplot)
     for projection in projection_list:
-        plt.plot(projection['trial_times'], projection['projected_trial_scores'], '-', lw=4, alpha=0.6)   
+        plt.plot(projection['trial_times'], projection['projected_trial_scores'], '-', lw=4, alpha=0.6)
 
     x_max = np.max(projection['trial_times'])
     plt.plot(actual['trial_times'], actual['trial_scores'], alpha=0.25, color='gray')
-    plt.ylim([-5,20])
+    plt.ylim([-5,30])
     plt.xlim([0, x_max])
     plt.xlabel('Smartcab time units (moves) per trial set', size=8)
     plt.ylabel('Trial scores', size=8)
-    plt.text(x_max / 20, 12, 'Gray: actual scores from most recent trial set', style='italic', size=4)
-    plt.text(x_max / 20, 11, 'Color: projected trial set averages', style='italic', size=4)
-    plt.text(x_max / 20, 14, "Trial set mean improvement rate:{}".format(round(mean_improvement_rate,2)), size=7)
-    plt.text(x_max / 20, 16, "Std dev. of trial set max projections:{}".format(round(std_max_fit_score,2)), size=7)
-    plt.text(x_max / 20, 18, "Mean of trial set max projections:{}".format(round(mean_max_fit_score,2)), size=7)
-    plt.title("\n".join(wrap("Discount factor: {} | " \
+    plt.text(9 * x_max / 20, 2 + height, 'Gray: actual scores from most recent trial set', style='italic', size=4)
+    plt.text(9 * x_max / 20, 0 + height, 'Color: projected trial set averages', style='italic', size=4)
+    plt.text(9 * x_max / 20, 4 + height, "Trial set mean improvement rate:{}".format(round(mean_improvement_rate,2)), size=7)
+    plt.text(9 * x_max / 20, 7 + height, "Std dev. of trial set max projections:{}".format(round(std_max_fit_score,2)), size=7)
+    plt.text(9 * x_max / 20, 10 + height, "Mean of trial set max projections:{}".format(round(mean_max_fit_score,2)), size=7)
+    plt.title("\n".join(wrap("Learning rate: {} | " \
                             "Decision approach: {} | " \
                             "Exploration rate: {} | " \
-                            "Trials: {}".format(discount_factor, decision_approach, exploration_rate, trials),50)), size=8)
+                            "Trials: {}".format(learning_rate, decision_approach, exploration_rate, trials),50)), size=8)
     return plt
 
 subplot = 0
@@ -103,13 +105,13 @@ fig = plt.figure(figsize=(12, 9), dpi=100)
 
 for rate in EXPLORATION_RATES:
     dimensions = [len(EXPLORATION_RATES)+1, len(TRIALS)] #To include random row in subplots
-    for trial in TRIALS:    
-        subplot += 1 
-        run_trial_sets(DISCOUNT_FACTORS[2], APPROACHES[0], rate, trial, 
+    for trial in TRIALS:
+        subplot += 1
+        run_trial_sets(LEARNING_RATES[2], APPROACHES[0], rate, trial,
                             dimensions, subplot)
 for trial in TRIALS:
-    subplot += 1 
-    run_trial_sets(DISCOUNT_FACTORS[2], APPROACHES[1], EXPLORATION_RATES[0], trial, 
+    subplot += 1
+    run_trial_sets(LEARNING_RATES[2], APPROACHES[1], EXPLORATION_RATES[0], trial,
                         dimensions, subplot) #Note: discount factors and exploration rates are not used
 plt.suptitle('Learning performance under different exploration rates', size=12, y=0.97)
 plt.tight_layout(h_pad=1.7, rect=[0, 0, 1, 0.93])
@@ -119,17 +121,17 @@ plt.show()
 subplot = 0
 fig = plt.figure(figsize=(12, 9), dpi=100)
 
-for rate in DISCOUNT_FACTORS:
-    dimensions = [len(DISCOUNT_FACTORS)+1, len(TRIALS)] #To include random row in subplots
-    for trial in TRIALS:    
-        subplot += 1 
-        run_trial_sets(rate, APPROACHES[0], EXPLORATION_RATES[0], trial, 
+for rate in LEARNING_RATES:
+    dimensions = [len(LEARNING_RATES)+1, len(TRIALS)] #To include random row in subplots
+    for trial in TRIALS:
+        subplot += 1
+        run_trial_sets(rate, APPROACHES[0], EXPLORATION_RATES[0], trial,
                             dimensions, subplot)
 for trial in TRIALS:
-    subplot += 1 
-    run_trial_sets(DISCOUNT_FACTORS[0], APPROACHES[1], EXPLORATION_RATES[0], trial, 
+    subplot += 1
+    run_trial_sets(LEARNING_RATES[0], APPROACHES[1], EXPLORATION_RATES[0], trial,
                         dimensions, subplot) #Note: learning and exploration rates are not used
-plt.suptitle('Learning performance under different discount factors', size=12, y=0.97)
+plt.suptitle('Learning performance under different learning rates', size=12, y=0.97)
 plt.tight_layout(h_pad=1.7, rect=[0, 0, 1, 0.93])
-plt.savefig('discount_factor_charts.png')
+plt.savefig('learning_rate_charts.png')
 plt.show()
