@@ -4,6 +4,7 @@ from planner import RoutePlanner
 from simulator import Simulator
 import pdb
 import math
+import pprint
 
 #Learning structure
 DECISION_APPROACH = 'learning'
@@ -39,6 +40,7 @@ class LearningAgent(Agent):
         self.trial_time = {}
         self.trial_score = 0
         self.q_value = 0
+        self.last_ten_trial_tables = []
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
@@ -57,14 +59,15 @@ class LearningAgent(Agent):
         deadline = self.env.get_deadline(self)
         self.time += 1
 
-        waypoint = { 'last_action': self.next_waypoint }
-        # before_last_action =  { 'before_last_action': self.before_last_action }
+        waypoint = { 'waypoint': self.next_waypoint }
         inputs.update(waypoint) #if last_action is not None else inputs
         # inputs.update(before_last_action) #if before_last_action is not None else inputs
         state = inputs
-        #set id for state to make more tractable
+        # set id for state to make more tractable
         if state not in self.states:
             self.states.append(state)
+
+        self.state = tuple((inputs['light'],inputs['oncoming'],inputs['left'], inputs['right'], self.next_waypoint))
 
         state_index = self.states.index(state)
         if state_index not in self.q_table.keys():
@@ -85,8 +88,14 @@ class LearningAgent(Agent):
 
         if self.decision_approach == 'learning':
             self.q_table = self.set_q_table(self.q_table, state_index, raw_action, reward)
-            #print self.q_table #Used for testing purposes
-            #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
+            print self.q_table #Used for testing purposes
+            print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
+            if self.trial > (TRIALS - 5) and reward < 0.0:
+                self.last_ten_trial_tables.append(tuple(({"Table Action-Rewards": self.q_table[state_index]['action_reward']},
+                                                    {"Inputs: ": inputs},
+                                                    {"Action: ": action},
+                                                    {"Reward: ": reward})))
+
 
     def choose_action(self, q_table, states, state):
         random_selection_threshold = self.exploration_rate * math.pow(DECAY_FACTOR, self.time)
@@ -139,7 +148,11 @@ def run(trials, learning_rate, exploration_rate, decision_approach):
     print "Your trial scores are {}".format(trial_scores)
     average_trial_score = sum(a.simulation_score.values()) / float(trials)
     print "###### Your average score per trial is {} ######".format(average_trial_score)
+    print "###### Relevant tables and actions for final trials with suboptimal outcomes: #######"
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(a.last_ten_trial_tables)
     return trial_scores, trial_times
+
 
 
 if __name__ == '__main__':
